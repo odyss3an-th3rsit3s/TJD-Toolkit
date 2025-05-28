@@ -8,13 +8,42 @@ permissions:
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
+    paths:
+      - '**/*.py'
+      - '**/requirements*.txt'
+      - '**/setup.py'
+      - '**/setup.cfg'
+      - '**/pyproject.toml'
+      - '**/Pipfile'
+      - '**/Pipfile.lock'
+      - '**/poetry.lock'
+      - '**/environment.yml'
+      - '**/environment.yaml'
+      - '**/tox.ini'
+      - '**/pytest.ini'
+      - '**/.flake8'
+      - '**/mypy.ini'
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
+    paths:
+      - '**/*.py'
+      - '**/requirements*.txt'
+      - '**/setup.py'
+      - '**/setup.cfg'
+      - '**/pyproject.toml'
+      - '**/Pipfile'
+      - '**/Pipfile.lock'
+      - '**/poetry.lock'
+      - '**/environment.yml'
+      - '**/environment.yaml'
+      - '**/tox.ini'
+      - '**/pytest.ini'
+      - '**/.flake8'
+      - '**/mypy.ini'
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
