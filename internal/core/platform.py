@@ -27,7 +27,7 @@ from enum import Enum
 from pathlib import Path
 from typing import List
 
-from .exceptions import PlatformError
+from internal.core.exceptions import PlatformError
 
 __all__ = ["Platform", "get_platform", "is_admin", "get_app_data_dir", "run_as_admin"]
 
@@ -83,6 +83,7 @@ def is_admin() -> bool:
         bool: True if process has admin privileges.
 
     Raises:
+        AttributeError: If privilege check fails.
         PlatformError: If privilege check fails.
 
     Example:
@@ -96,9 +97,12 @@ def is_admin() -> bool:
         if sys.platform == "win32":
             return bool(ctypes.windll.shell32.IsUserAnAdmin())
         else:  # Unix-like systems (Linux, macOS)
-            if hasattr(os, "geteuid"):  # Unix systems have this
-                return os.geteuid() == 0
-            return False
+            try:
+                if hasattr(os, "geteuid"):  # Unix systems have this
+                    return os.geteuid() == 0
+                return False
+            except AttributeError:
+                return False
     except Exception as e:
         msg = "Error checking admin privileges"
         logger.error(f"{msg}: {e}")
