@@ -27,8 +27,13 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, TypeVar, Union
 
-from .exceptions import ConfigurationError, FileOperationError, JSONParsingError, ValidationError
-from .platform import get_app_data_dir
+from internal.core.exceptions import (
+    ConfigurationError,
+    FileOperationError,
+    JSONParsingError,
+    ValidationError,
+)
+from internal.core.platform import get_app_data_dir
 
 __all__ = ["Config", "config"]
 
