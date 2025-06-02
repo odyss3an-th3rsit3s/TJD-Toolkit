@@ -136,38 +136,38 @@ class TestIsAdmin:
     """
 
     @patch("sys.platform", "win32")
-    @patch("ctypes.windll.shell32.IsUserAnAdmin")
-    def test_is_admin_windows_true(self, mock_is_user_admin):
+    @patch("internal.core.platform.ctypes")
+    def test_is_admin_windows_true(self, mock_ctypes):
         """Test is_admin returns True for Windows administrator.
 
         Mock Windows admin check to return 1 (admin) and verify
         the function returns True.
 
         Args:
-            mock_is_user_admin: Mocked Windows admin check function.
+            mock_ctypes: Mocked Windows admin check function.
 
         Raises:
             AssertionError: If True is not returned.
         """
-        mock_is_user_admin.return_value = 1
+        mock_ctypes.windll.shell32.IsUserAnAdmin.return_value = 1
         result = is_admin()
         assert result is True
 
     @patch("sys.platform", "win32")
-    @patch("ctypes.windll.shell32.IsUserAnAdmin")
-    def test_is_admin_windows_false(self, mock_is_user_admin):
+    @patch("internal.core.platform.ctypes")
+    def test_is_admin_windows_false(self, mock_ctypes):
         """Test is_admin returns False for Windows non-administrator.
 
         Mock Windows admin check to return 0 (not admin) and verify
         the function returns False.
 
         Args:
-            mock_is_user_admin: Mocked Windows admin check function.
+            mock_ctypes: Mocked Windows admin check function.
 
         Raises:
             AssertionError: If False is not returned.
         """
-        mock_is_user_admin.return_value = 0
+        mock_ctypes.windll.shell32.IsUserAnAdmin.return_value = 0
         result = is_admin()
         assert result is False
 
@@ -222,20 +222,20 @@ class TestIsAdmin:
             assert result is False
 
     @patch("sys.platform", "win32")
-    @patch("ctypes.windll.shell32.IsUserAnAdmin")
-    def test_is_admin_windows_exception(self, mock_is_user_admin):
+    @patch("internal.core.platform.ctypes")
+    def test_is_admin_windows_exception(self, mock_ctypes):
         """Test is_admin raises PlatformError on Windows failure.
 
         Mock Windows admin check to raise exception and verify
         PlatformError is raised with correct attributes.
 
         Args:
-            mock_is_user_admin: Mocked Windows admin check function.
+            mock_ctypes: Mocked Windows admin check function.
 
         Raises:
             AssertionError: If PlatformError is not raised correctly.
         """
-        mock_is_user_admin.side_effect = Exception("Access denied")
+        mock_ctypes.windll.shell32.IsUserAnAdmin.side_effect = Exception("Access denied")
 
         with pytest.raises(PlatformError) as exc_info:
             is_admin()
