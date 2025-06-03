@@ -25,10 +25,16 @@ __all__ = [
     "TJDError",
     "ConfigurationError",
     "OperationError",
-    "FileOperationError",
-    "ValidationError",
-    "JSONParsingError",
     "PlatformError",
+    "ValidationError",
+    "GUIError",
+    "FileOperationError",
+    "JSONParsingError",
+    "FontError",
+    "ThemeError",
+    "WindowError",
+    "ViewError",
+    "NavigationError",
 ]
 
 logger = logging.getLogger(__name__)
@@ -116,40 +122,42 @@ class OperationError(TJDError):
         self.operation = operation
 
 
-class FileOperationError(OperationError):
-    """Signal file system operation failures.
+class PlatformError(TJDError):
+    """Signal platform-specific operation failures.
 
-    Indicate failures in file operations including reading, writing,
-    creating directories, and file access permissions.
+    Indicate failures in platform-dependent operations including privilege
+    elevation, system path access, and OS-specific functionality.
 
     Attributes:
-        file_path (Optional[str]): Path to the file that caused the error.
+        platform (Optional[str]): The platform where the error occurred.
+        operation (Optional[str]): The platform-specific operation that failed.
 
     Example:
         >>> try:
-        ...     raise FileOperationError("read", "Permission denied", "/etc/config")
-        ... except FileOperationError as e:
-        ...     print(f"File error: {e}")
-        File error: read failed: Permission denied
+        ...     raise PlatformError("Failed to elevate privileges", platform="windows")
+        ... except PlatformError as e:
+        ...     print(f"Platform error: {e}")
+        Platform error: Failed to elevate privileges
     """
 
     def __init__(
         self,
-        operation: str,
         message: str,
-        file_path: Optional[str] = None,
+        platform: Optional[str] = None,
+        operation: Optional[str] = None,
         cause: Optional[Exception] = None,
     ) -> None:
-        """Initialize file operation error with context.
+        """Initialize platform error with context.
 
         Args:
-            operation (str): Type of file operation that failed.
-            message (str): Description of the failure.
-            file_path (Optional[str]): Path to the file. Defaults to None.
+            message (str): Description of the platform error.
+            platform (Optional[str]): Affected platform. Defaults to None.
+            operation (Optional[str]): Failed operation. Defaults to None.
             cause (Optional[Exception]): Original error. Defaults to None.
         """
-        super().__init__(operation, message, cause)
-        self.file_path = file_path
+        super().__init__(message, cause)
+        self.platform = platform
+        self.operation = operation
 
 
 class ValidationError(TJDError):
@@ -190,6 +198,57 @@ class ValidationError(TJDError):
         self.value = value
 
 
+class GUIError(TJDError):
+    """Signal GUI-related operation failures.
+
+    Base class for GUI-specific exceptions including theme configuration,
+    window management, and view handling errors.
+
+    Example:
+        >>> try:
+        ...     raise GUIError("Failed to update layout")
+        ... except GUIError as e:
+        ...     print(f"GUI error: {e}")
+        GUI error: Failed to update layout
+    """
+
+
+class FileOperationError(OperationError):
+    """Signal file system operation failures.
+
+    Indicate failures in file operations including reading, writing,
+    creating directories, and file access permissions.
+
+    Attributes:
+        file_path (Optional[str]): Path to the file that caused the error.
+
+    Example:
+        >>> try:
+        ...     raise FileOperationError("read", "Permission denied", "/etc/config")
+        ... except FileOperationError as e:
+        ...     print(f"File error: {e}")
+        File error: read failed: Permission denied
+    """
+
+    def __init__(
+        self,
+        operation: str,
+        message: str,
+        file_path: Optional[str] = None,
+        cause: Optional[Exception] = None,
+    ) -> None:
+        """Initialize file operation error with context.
+
+        Args:
+            operation (str): Type of file operation that failed.
+            message (str): Description of the failure.
+            file_path (Optional[str]): Path to the file. Defaults to None.
+            cause (Optional[Exception]): Original error. Defaults to None.
+        """
+        super().__init__(operation, message, cause)
+        self.file_path = file_path
+
+
 class JSONParsingError(ConfigurationError):
     """Signal JSON parsing and serialization failures.
 
@@ -205,39 +264,184 @@ class JSONParsingError(ConfigurationError):
     """
 
 
-class PlatformError(TJDError):
-    """Signal platform-specific operation failures.
+class FontError(GUIError):
+    """Signal font-related operation failures.
 
-    Indicate failures in platform-dependent operations including privilege
-    elevation, system path access, and OS-specific functionality.
+    Indicate failures in font operations including loading font files,
+    font registration, and font configuration issues.
 
     Attributes:
-        platform (Optional[str]): The platform where the error occurred.
-        operation (Optional[str]): The platform-specific operation that failed.
+        font_name (Optional[str]): Name of the font that caused the error.
+        font_path (Optional[str]): Path to the font file that caused the error.
 
     Example:
         >>> try:
-        ...     raise PlatformError("Failed to elevate privileges", platform="windows")
-        ... except PlatformError as e:
-        ...     print(f"Platform error: {e}")
-        Platform error: Failed to elevate privileges
+        ...     raise FontError("Failed to load font", font_name="NotoSans")
+        ... except FontError as e:
+        ...     print(f"Font error: {e}")
+        Font error: Failed to load font
     """
 
     def __init__(
         self,
         message: str,
-        platform: Optional[str] = None,
-        operation: Optional[str] = None,
+        font_name: Optional[str] = None,
+        font_path: Optional[str] = None,
         cause: Optional[Exception] = None,
     ) -> None:
-        """Initialize platform error with context.
+        """Initialize font error with context.
 
         Args:
-            message (str): Description of the platform error.
-            platform (Optional[str]): Affected platform. Defaults to None.
-            operation (Optional[str]): Failed operation. Defaults to None.
+            message (str): Description of the font error.
+            font_name (Optional[str]): Name of the font. Defaults to None.
+            font_path (Optional[str]): Path to the font file. Defaults to None.
             cause (Optional[Exception]): Original error. Defaults to None.
         """
         super().__init__(message, cause)
-        self.platform = platform
-        self.operation = operation
+        self.font_name = font_name
+        self.font_path = font_path
+
+
+class ThemeError(GUIError):
+    """Signal theme configuration and application failures.
+
+    Indicate failures in theme-related operations including loading themes,
+    applying styles, and managing font settings.
+
+    Attributes:
+        theme_name (Optional[str]): Name of the theme that caused the error.
+        component (Optional[str]): UI component where the error occurred.
+
+    Example:
+        >>> try:
+        ...     raise ThemeError("Invalid theme mode", theme_name="dark")
+        ... except ThemeError as e:
+        ...     print(f"Theme error: {e}")
+        Theme error: Invalid theme mode
+    """
+
+    def __init__(
+        self,
+        message: str,
+        theme_name: Optional[str] = None,
+        component: Optional[str] = None,
+        cause: Optional[Exception] = None,
+    ) -> None:
+        """Initialize theme error with context.
+
+        Args:
+            message (str): Description of the theme error.
+            theme_name (Optional[str]): Name of the theme. Defaults to None.
+            component (Optional[str]): Affected UI component. Defaults to None.
+            cause (Optional[Exception]): Original error. Defaults to None.
+        """
+        super().__init__(message, cause)
+        self.theme_name = theme_name
+        self.component = component
+
+
+class WindowError(GUIError):
+    """Signal window management operation failures.
+
+    Indicate failures in window operations including resizing,
+    state changes, and configuration persistence.
+
+    Attributes:
+        window_id (Optional[str]): Identifier of the affected window.
+        property_name (Optional[str]): Name of the window property.
+
+    Example:
+        >>> try:
+        ...     raise WindowError("Failed to resize window", property_name="width")
+        ... except WindowError as e:
+        ...     print(f"Window error: {e}")
+        Window error: Failed to resize window
+    """
+
+    def __init__(
+        self,
+        message: str,
+        window_id: Optional[str] = None,
+        property_name: Optional[str] = None,
+        cause: Optional[Exception] = None,
+    ) -> None:
+        """Initialize window error with context.
+
+        Args:
+            message (str): Description of the window error.
+            window_id (Optional[str]): Window identifier. Defaults to None.
+            property_name (Optional[str]): Affected property. Defaults to None.
+            cause (Optional[Exception]): Original error. Defaults to None.
+        """
+        super().__init__(message, cause)
+        self.window_id = window_id
+        self.property_name = property_name
+
+
+class ViewError(GUIError):
+    """Signal view handling and navigation failures.
+
+    Indicate failures in view operations including loading views,
+    route changes, and view stack management.
+
+    Attributes:
+        route (Optional[str]): Route where the error occurred.
+        view_name (Optional[str]): Name of the affected view.
+
+    Example:
+        >>> try:
+        ...     raise ViewError("View not found", route="/invalid")
+        ... except ViewError as e:
+        ...     print(f"View error: {e}")
+        View error: View not found
+    """
+
+    def __init__(
+        self,
+        message: str,
+        route: Optional[str] = None,
+        view_name: Optional[str] = None,
+        cause: Optional[Exception] = None,
+    ) -> None:
+        """Initialize view error with context.
+
+        Args:
+            message (str): Description of the view error.
+            route (Optional[str]): Associated route. Defaults to None.
+            view_name (Optional[str]): Name of the view. Defaults to None.
+            cause (Optional[Exception]): Original error. Defaults to None.
+        """
+        super().__init__(message, cause)
+        self.route = route
+        self.view_name = view_name
+
+
+class NavigationError(GUIError):
+    """Signal navigation and routing failures.
+
+    Indicate failures in application navigation including invalid routes,
+    view loading errors, and navigation state inconsistencies.
+
+    Attributes:
+        route (Optional[str]): The route that caused the error.
+
+    Example:
+        >>> try:
+        ...     raise NavigationError("Invalid route", route="/invalid/path")
+        ... except NavigationError as e:
+        ...     print(f"Navigation error: {e}")
+        Navigation error: Invalid route
+    """
+
+    def __init__(
+        self, message: str, route: Optional[str] = None, cause: Optional[Exception] = None
+    ) -> None:
+        """Initialize navigation error with context.
+
+        Args:
+            message (str): Description of the navigation failure.
+            route (Optional[str]): The problematic route. Defaults to None.
+            cause (Optional[Exception]): Original error. Defaults to None.
+        """
+        super().__init__(message, cause)
+        self.route = route
