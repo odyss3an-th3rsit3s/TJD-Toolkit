@@ -18,11 +18,14 @@
 
 **A collection of simple tools for your digital toolbelt**  
 
-**T**-**J**-**D**.  
-Some say it stands for "*Toolbox for Just Doing*".  
-Others say it stands for "*Toolbox für Jeden Digitalen*".  
-Yet others say it stands for "*திறமையான ਜੁਗਾੜ டப்பா/ਡੱਬਾ* " (Thiramaiyana Jugaad Dabba).  
-Who's to say who is right?  
+T-J-D.
+
+☑️: "*Toolbox for Just Doing*".  
+☑️: "*Toolbox für Jeden Digitalen*".  
+☑️: "*திறமையான ਜੁਗਾੜ டப்பா/ਡੱਬਾ* " (Thiramaiyana Jugaad Dabba).  
+☑️: ...  
+
+*Honestly*, who's to say who is right?  
 
 *...find what you need yet?*
 
@@ -68,7 +71,7 @@ poetry shell
 
 ### Running the GUI
 ```console
-poetry run python gui/main.py
+(poetry run) python gui/main.py
 ```
 
 ## Contributing
@@ -77,6 +80,16 @@ Please review our [Contribution Guidelines](CONTRIBUTING.md) (COMING SOON) for f
 
 ## License
 This project is licensed under the **Apache License, Version 2.0** - see the [LICENSE](LICENSE) file for details.
+
+### *Third-Party Components*
+This project includes the following third-party components:
+
+- **Noto Sans Font Family** - Licensed under the SIL Open Font License (OFL) 1.1
+  - Copyright 2022 The Noto Project Authors
+  - License: [OFL.txt](./gui/assets/fonts/static/Noto_Sans/OFL.txt)
+  - Source: [Google Fonts](https://fonts.google.com/noto/specimen/Noto+Sans)
+
+Please ensure that you comply with the terms of both the Apache License 2.0 for the project code and the SIL Open Font License for the Noto Sans fonts.
 
 ---
 
