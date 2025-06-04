@@ -35,6 +35,7 @@ __all__ = [
     "WindowError",
     "ViewError",
     "NavigationError",
+    "HomeViewError",
 ]
 
 logger = logging.getLogger(__name__)
@@ -445,3 +446,44 @@ class NavigationError(GUIError):
         """
         super().__init__(message, cause)
         self.route = route
+
+
+class HomeViewError(ViewError):
+    """Signal home view specific operation failures.
+
+    Indicate failures specific to home view operations including UI setup,
+    tool loading, navigation initialization, and grid creation errors.
+    Inherits from ViewError to maintain the view error hierarchy.
+
+    Attributes:
+        route (Optional[str]): Route where the error occurred.
+        view_name (Optional[str]): Name of the affected view.
+        component (Optional[str]): Specific home view component that failed.
+
+    Example:
+        >>> try:
+        ...     raise HomeViewError("Failed to create tools grid", component="tools_grid")
+        ... except HomeViewError as e:
+        ...     print(f"Home view error: {e}")
+        Home view error: Failed to create tools grid
+    """
+
+    def __init__(
+        self,
+        message: str,
+        route: Optional[str] = None,
+        view_name: Optional[str] = None,
+        component: Optional[str] = None,
+        cause: Optional[Exception] = None,
+    ) -> None:
+        """Initialize home view error with context.
+
+        Args:
+            message (str): Description of the home view error.
+            route (Optional[str]): Associated route. Defaults to None.
+            view_name (Optional[str]): Name of the view. Defaults to None.
+            component (Optional[str]): Failed component. Defaults to None.
+            cause (Optional[Exception]): Original error. Defaults to None.
+        """
+        super().__init__(message, route, view_name, cause)
+        self.component = component

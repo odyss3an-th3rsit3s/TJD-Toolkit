@@ -35,6 +35,7 @@ from internal.core.exceptions import (
     WindowError,
     ViewError,
     NavigationError,
+    HomeViewError,
 )
 
 
@@ -597,6 +598,94 @@ class TestNavigationError:
         assert error.route is None
 
 
+class TestHomeViewError:
+    """Test suite for HomeViewError exception class.
+
+    This class tests the HomeViewError exception, which extends ViewError
+    for home view specific operations. Tests cover component handling along
+    with inherited route and view name attributes from ViewError.
+    """
+
+    def test_inheritance(self):
+        """Test inheritance hierarchy through ViewError to GUIError to TJDError."""
+        error = HomeViewError("Home view operation failed")
+        assert isinstance(error, ViewError)
+        assert isinstance(error, GUIError)
+        assert isinstance(error, TJDError)
+        assert isinstance(error, Exception)
+
+    def test_basic_functionality(self):
+        """Test basic HomeViewError instantiation and attributes."""
+        error = HomeViewError("Failed to initialize home view")
+        assert error.message == "Failed to initialize home view"
+        assert error.route is None
+        assert error.view_name is None
+        assert error.component is None
+
+    def test_with_component(self):
+        """Test HomeViewError creation with component context."""
+        error = HomeViewError("Component loading failed", component="tools_grid")
+        assert error.message == "Component loading failed"
+        assert error.route is None
+        assert error.view_name is None
+        assert error.component == "tools_grid"
+
+    def test_with_route(self):
+        """Test HomeViewError creation with route context."""
+        error = HomeViewError("Route handling failed", route="/home")
+        assert error.message == "Route handling failed"
+        assert error.route == "/home"
+        assert error.view_name is None
+        assert error.component is None
+
+    def test_with_view_name(self):
+        """Test HomeViewError creation with view name context."""
+        error = HomeViewError("View loading failed", view_name="HomeView")
+        assert error.message == "View loading failed"
+        assert error.route is None
+        assert error.view_name == "HomeView"
+        assert error.component is None
+
+    def test_with_route_and_component(self):
+        """Test HomeViewError creation with route and component context."""
+        error = HomeViewError("Navigation failed", route="/home", component="nav_bar")
+        assert error.message == "Navigation failed"
+        assert error.route == "/home"
+        assert error.view_name is None
+        assert error.component == "nav_bar"
+
+    def test_with_all_parameters(self):
+        """Test HomeViewError with all available parameters."""
+        cause = RuntimeError("Runtime error")
+        error = HomeViewError(
+            "Home view initialization failed",
+            route="/home",
+            view_name="HomeView",
+            component="tools_grid",
+            cause=cause,
+        )
+        assert error.message == "Home view initialization failed"
+        assert error.route == "/home"
+        assert error.view_name == "HomeView"
+        assert error.component == "tools_grid"
+        assert error.cause == cause
+
+    def test_with_cause(self):
+        """Test HomeViewError creation with exception chaining."""
+        cause = ValueError("Invalid component configuration")
+        error = HomeViewError("Component setup failed", component="tools_grid", cause=cause)
+        assert error.message == "Component setup failed"
+        assert error.component == "tools_grid"
+        assert error.cause == cause
+
+    def test_none_home_view_attributes(self):
+        """Test explicit None home view attributes handling."""
+        error = HomeViewError("Error", route=None, view_name=None, component=None)
+        assert error.route is None
+        assert error.view_name is None
+        assert error.component is None
+
+
 class TestExceptionHierarchy:
     """Test suite for exception hierarchy and catching behavior.
 
@@ -615,6 +704,10 @@ class TestExceptionHierarchy:
         with pytest.raises(ConfigurationError):
             raise JSONParsingError("test error")
 
+        # HomeViewError should be catchable as ViewError
+        with pytest.raises(ViewError):
+            raise HomeViewError("test error")
+
         # All GUI exceptions should be catchable as GUIError
         gui_exceptions = [
             FontError("test"),
@@ -622,6 +715,7 @@ class TestExceptionHierarchy:
             WindowError("test"),
             ViewError("test"),
             NavigationError("test"),
+            HomeViewError("test"),
         ]
 
         for exc in gui_exceptions:
@@ -642,6 +736,7 @@ class TestExceptionHierarchy:
             WindowError("test"),
             ViewError("test"),
             NavigationError("test"),
+            HomeViewError("test"),
         ]
 
         for exc in exceptions_to_test:
@@ -664,6 +759,14 @@ class TestExceptionHierarchy:
             raise ThemeError("theme error", theme_name="dark", component="button")
         assert exc_info.value.theme_name == "dark"
         assert exc_info.value.component == "button"
+
+        with pytest.raises(HomeViewError) as exc_info:
+            raise HomeViewError(
+                "home view error", route="/home", view_name="HomeView", component="tools_grid"
+            )
+        assert exc_info.value.route == "/home"
+        assert exc_info.value.view_name == "HomeView"
+        assert exc_info.value.component == "tools_grid"
 
 
 class TestModuleExports:
@@ -692,6 +795,7 @@ class TestModuleExports:
             "WindowError",
             "ViewError",
             "NavigationError",
+            "HomeViewError",
         ]
 
         assert set(__all__) == set(expected_exports)
@@ -842,6 +946,11 @@ class TestParametrizedExceptions:
                 NavigationError,
                 ("nav error",),
                 {"message": "nav error", "route": None},
+            ),
+            (
+                HomeViewError,
+                ("home view error",),
+                {"message": "home view error", "route": None, "view_name": None, "component": None},
             ),
         ],
     )
