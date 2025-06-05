@@ -51,7 +51,7 @@ dev = [
 ]
 
 [tool.poetry]
-packages = [{include = "internal"}]
+packages = [{include = "gui"}, {include = "internal"}]
 
 [build-system]
 requires = ["poetry-core>=2.0.0"]

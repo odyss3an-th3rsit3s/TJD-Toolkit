@@ -25,10 +25,17 @@ from internal.core.exceptions import (
     TJDError,
     ConfigurationError,
     OperationError,
-    FileOperationError,
-    ValidationError,
-    JSONParsingError,
     PlatformError,
+    ValidationError,
+    GUIError,
+    FileOperationError,
+    JSONParsingError,
+    FontError,
+    ThemeError,
+    WindowError,
+    ViewError,
+    NavigationError,
+    HomeViewError,
 )
 
 
@@ -151,49 +158,47 @@ class TestOperationError:
         assert error.message == " failed: Failed"
 
 
-class TestFileOperationError:
-    """Test suite for FileOperationError exception class.
+class TestPlatformError:
+    """Test suite for PlatformError exception class.
 
-    This class tests the FileOperationError exception, which extends
-    OperationError to provide file-specific context. Tests cover
-    file path handling and inheritance from OperationError.
+    This class tests the PlatformError exception, which provides
+    context about platform-specific operations and failures.
+    Tests cover platform and operation context handling.
     """
 
     def test_inheritance(self):
-        """Test inheritance hierarchy through OperationError to TJDError."""
-        error = FileOperationError("read", "Permission denied")
-        assert isinstance(error, OperationError)
+        """Test inheritance hierarchy from TJDError and Exception."""
+        error = PlatformError("Platform specific error")
         assert isinstance(error, TJDError)
         assert isinstance(error, Exception)
 
     def test_basic_functionality(self):
-        """Test basic FileOperationError instantiation and attributes."""
-        error = FileOperationError("write", "Disk full")
-        assert error.operation == "write"
-        assert error.message == "write failed: Disk full"
-        assert error.file_path is None
+        """Test basic PlatformError instantiation and attributes."""
+        error = PlatformError("Privilege escalation failed")
+        assert error.message == "Privilege escalation failed"
+        assert error.platform is None
+        assert error.operation is None
 
-    def test_with_file_path(self):
-        """Test FileOperationError creation with file path context."""
-        error = FileOperationError("delete", "Not found", file_path="/tmp/test.txt")
-        assert error.operation == "delete"
-        assert error.file_path == "/tmp/test.txt"
-        assert "delete failed: Not found" in str(error)
+    def test_with_platform_and_operation(self):
+        """Test PlatformError creation with platform and operation context."""
+        error = PlatformError("Failed to elevate", platform="windows", operation="runas")
+        assert error.message == "Failed to elevate"
+        assert error.platform == "windows"
+        assert error.operation == "runas"
 
-    def test_with_all_parameters(self):
-        """Test FileOperationError with all available parameters."""
-        cause = OSError("OS error")
-        error = FileOperationError(
-            "create", "Permission denied", file_path="/etc/config", cause=cause
-        )
-        assert error.operation == "create"
-        assert error.file_path == "/etc/config"
+    def test_with_cause(self):
+        """Test PlatformError creation with exception chaining."""
+        cause = PermissionError("Access denied")
+        error = PlatformError("Elevation failed", platform="linux", operation="sudo", cause=cause)
+        assert error.platform == "linux"
+        assert error.operation == "sudo"
         assert error.cause == cause
 
-    def test_none_file_path(self):
-        """Test explicit None file path handling."""
-        error = FileOperationError("read", "Error", file_path=None)
-        assert error.file_path is None
+    def test_none_platform_and_operation(self):
+        """Test explicit None platform and operation handling."""
+        error = PlatformError("Error", platform=None, operation=None)
+        assert error.platform is None
+        assert error.operation is None
 
 
 class TestValidationError:
@@ -239,6 +244,78 @@ class TestValidationError:
         assert error.value is None
 
 
+class TestGUIError:
+    """Test suite for GUIError exception class.
+
+    This class tests the GUIError exception, which serves as the base
+    class for all GUI-related errors in the TJD-Toolkit. Tests cover
+    inheritance from TJDError and basic functionality.
+    """
+
+    def test_inheritance(self):
+        """Test inheritance hierarchy from TJDError and Exception."""
+        error = GUIError("GUI operation failed")
+        assert isinstance(error, TJDError)
+        assert isinstance(error, Exception)
+
+    def test_basic_functionality(self):
+        """Test basic GUIError instantiation and attributes."""
+        error = GUIError("Failed to update layout")
+        assert error.message == "Failed to update layout"
+        assert str(error) == "Failed to update layout"
+
+    def test_with_cause(self):
+        """Test GUIError creation with exception chaining."""
+        cause = RuntimeError("Runtime error")
+        error = GUIError("GUI error", cause=cause)
+        assert error.cause == cause
+
+
+class TestFileOperationError:
+    """Test suite for FileOperationError exception class.
+
+    This class tests the FileOperationError exception, which extends
+    OperationError to provide file-specific context. Tests cover
+    file path handling and inheritance from OperationError.
+    """
+
+    def test_inheritance(self):
+        """Test inheritance hierarchy through OperationError to TJDError."""
+        error = FileOperationError("read", "Permission denied")
+        assert isinstance(error, OperationError)
+        assert isinstance(error, TJDError)
+        assert isinstance(error, Exception)
+
+    def test_basic_functionality(self):
+        """Test basic FileOperationError instantiation and attributes."""
+        error = FileOperationError("write", "Disk full")
+        assert error.operation == "write"
+        assert error.message == "write failed: Disk full"
+        assert error.file_path is None
+
+    def test_with_file_path(self):
+        """Test FileOperationError creation with file path context."""
+        error = FileOperationError("delete", "Not found", file_path="/tmp/test.txt")
+        assert error.operation == "delete"
+        assert error.file_path == "/tmp/test.txt"
+        assert "delete failed: Not found" in str(error)
+
+    def test_with_all_parameters(self):
+        """Test FileOperationError with all available parameters."""
+        cause = OSError("OS error")
+        error = FileOperationError(
+            "create", "Permission denied", file_path="/etc/config", cause=cause
+        )
+        assert error.operation == "create"
+        assert error.file_path == "/etc/config"
+        assert error.cause == cause
+
+    def test_none_file_path(self):
+        """Test explicit None file path handling."""
+        error = FileOperationError("read", "Error", file_path=None)
+        assert error.file_path is None
+
+
 class TestJSONParsingError:
     """Test suite for JSONParsingError exception class.
 
@@ -269,47 +346,344 @@ class TestJSONParsingError:
         assert error.cause == cause
 
 
-class TestPlatformError:
-    """Test suite for PlatformError exception class.
+class TestFontError:
+    """Test suite for FontError exception class.
 
-    This class tests the PlatformError exception, which provides
-    context about platform-specific operations and failures.
-    Tests cover platform and operation context handling.
+    This class tests the FontError exception, which extends GUIError
+    for font-specific operations. Tests cover font name and path
+    handling along with inheritance behavior.
     """
 
     def test_inheritance(self):
-        """Test inheritance hierarchy from TJDError and Exception."""
-        error = PlatformError("Platform specific error")
+        """Test inheritance hierarchy through GUIError to TJDError."""
+        error = FontError("Font loading failed")
+        assert isinstance(error, GUIError)
         assert isinstance(error, TJDError)
         assert isinstance(error, Exception)
 
     def test_basic_functionality(self):
-        """Test basic PlatformError instantiation and attributes."""
-        error = PlatformError("Privilege escalation failed")
-        assert error.message == "Privilege escalation failed"
-        assert error.platform is None
-        assert error.operation is None
+        """Test basic FontError instantiation and attributes."""
+        error = FontError("Failed to load font")
+        assert error.message == "Failed to load font"
+        assert error.font_name is None
+        assert error.font_path is None
 
-    def test_with_platform_and_operation(self):
-        """Test PlatformError creation with platform and operation context."""
-        error = PlatformError("Failed to elevate", platform="windows", operation="runas")
-        assert error.message == "Failed to elevate"
-        assert error.platform == "windows"
-        assert error.operation == "runas"
+    def test_with_font_name(self):
+        """Test FontError creation with font name context."""
+        error = FontError("Font not found", font_name="NotoSans")
+        assert error.message == "Font not found"
+        assert error.font_name == "NotoSans"
+        assert error.font_path is None
 
-    def test_with_cause(self):
-        """Test PlatformError creation with exception chaining."""
-        cause = PermissionError("Access denied")
-        error = PlatformError("Elevation failed", platform="linux", operation="sudo", cause=cause)
-        assert error.platform == "linux"
-        assert error.operation == "sudo"
+    def test_with_font_path(self):
+        """Test FontError creation with font path context."""
+        error = FontError("Cannot read font file", font_path="/fonts/custom.ttf")
+        assert error.message == "Cannot read font file"
+        assert error.font_name is None
+        assert error.font_path == "/fonts/custom.ttf"
+
+    def test_with_all_parameters(self):
+        """Test FontError with all available parameters."""
+        cause = FileNotFoundError("File not found")
+        error = FontError(
+            "Font loading failed", font_name="Arial", font_path="/fonts/arial.ttf", cause=cause
+        )
+        assert error.font_name == "Arial"
+        assert error.font_path == "/fonts/arial.ttf"
         assert error.cause == cause
 
-    def test_none_platform_and_operation(self):
-        """Test explicit None platform and operation handling."""
-        error = PlatformError("Error", platform=None, operation=None)
-        assert error.platform is None
-        assert error.operation is None
+    def test_none_font_attributes(self):
+        """Test explicit None font attributes handling."""
+        error = FontError("Error", font_name=None, font_path=None)
+        assert error.font_name is None
+        assert error.font_path is None
+
+
+class TestThemeError:
+    """Test suite for ThemeError exception class.
+
+    This class tests the ThemeError exception, which extends GUIError
+    for theme-specific operations. Tests cover theme name and component
+    handling along with inheritance behavior.
+    """
+
+    def test_inheritance(self):
+        """Test inheritance hierarchy through GUIError to TJDError."""
+        error = ThemeError("Theme loading failed")
+        assert isinstance(error, GUIError)
+        assert isinstance(error, TJDError)
+        assert isinstance(error, Exception)
+
+    def test_basic_functionality(self):
+        """Test basic ThemeError instantiation and attributes."""
+        error = ThemeError("Invalid theme mode")
+        assert error.message == "Invalid theme mode"
+        assert error.theme_name is None
+        assert error.component is None
+
+    def test_with_theme_name(self):
+        """Test ThemeError creation with theme name context."""
+        error = ThemeError("Theme not found", theme_name="dark")
+        assert error.message == "Theme not found"
+        assert error.theme_name == "dark"
+        assert error.component is None
+
+    def test_with_component(self):
+        """Test ThemeError creation with component context."""
+        error = ThemeError("Component styling failed", component="button")
+        assert error.message == "Component styling failed"
+        assert error.theme_name is None
+        assert error.component == "button"
+
+    def test_with_all_parameters(self):
+        """Test ThemeError with all available parameters."""
+        cause = ValueError("Invalid value")
+        error = ThemeError(
+            "Theme application failed", theme_name="custom", component="navbar", cause=cause
+        )
+        assert error.theme_name == "custom"
+        assert error.component == "navbar"
+        assert error.cause == cause
+
+    def test_none_theme_attributes(self):
+        """Test explicit None theme attributes handling."""
+        error = ThemeError("Error", theme_name=None, component=None)
+        assert error.theme_name is None
+        assert error.component is None
+
+
+class TestWindowError:
+    """Test suite for WindowError exception class.
+
+    This class tests the WindowError exception, which extends GUIError
+    for window management operations. Tests cover window ID and property
+    handling along with inheritance behavior.
+    """
+
+    def test_inheritance(self):
+        """Test inheritance hierarchy through GUIError to TJDError."""
+        error = WindowError("Window operation failed")
+        assert isinstance(error, GUIError)
+        assert isinstance(error, TJDError)
+        assert isinstance(error, Exception)
+
+    def test_basic_functionality(self):
+        """Test basic WindowError instantiation and attributes."""
+        error = WindowError("Failed to resize window")
+        assert error.message == "Failed to resize window"
+        assert error.window_id is None
+        assert error.property_name is None
+
+    def test_with_window_id(self):
+        """Test WindowError creation with window ID context."""
+        error = WindowError("Window not found", window_id="main_window")
+        assert error.message == "Window not found"
+        assert error.window_id == "main_window"
+        assert error.property_name is None
+
+    def test_with_property_name(self):
+        """Test WindowError creation with property name context."""
+        error = WindowError("Invalid property", property_name="width")
+        assert error.message == "Invalid property"
+        assert error.window_id is None
+        assert error.property_name == "width"
+
+    def test_with_all_parameters(self):
+        """Test WindowError with all available parameters."""
+        cause = AttributeError("Attribute error")
+        error = WindowError(
+            "Property update failed", window_id="dialog", property_name="height", cause=cause
+        )
+        assert error.window_id == "dialog"
+        assert error.property_name == "height"
+        assert error.cause == cause
+
+    def test_none_window_attributes(self):
+        """Test explicit None window attributes handling."""
+        error = WindowError("Error", window_id=None, property_name=None)
+        assert error.window_id is None
+        assert error.property_name is None
+
+
+class TestViewError:
+    """Test suite for ViewError exception class.
+
+    This class tests the ViewError exception, which extends GUIError
+    for view handling operations. Tests cover route and view name
+    handling along with inheritance behavior.
+    """
+
+    def test_inheritance(self):
+        """Test inheritance hierarchy through GUIError to TJDError."""
+        error = ViewError("View loading failed")
+        assert isinstance(error, GUIError)
+        assert isinstance(error, TJDError)
+        assert isinstance(error, Exception)
+
+    def test_basic_functionality(self):
+        """Test basic ViewError instantiation and attributes."""
+        error = ViewError("View not found")
+        assert error.message == "View not found"
+        assert error.route is None
+        assert error.view_name is None
+
+    def test_with_route(self):
+        """Test ViewError creation with route context."""
+        error = ViewError("Invalid route", route="/invalid")
+        assert error.message == "Invalid route"
+        assert error.route == "/invalid"
+        assert error.view_name is None
+
+    def test_with_view_name(self):
+        """Test ViewError creation with view name context."""
+        error = ViewError("View loading failed", view_name="settings")
+        assert error.message == "View loading failed"
+        assert error.route is None
+        assert error.view_name == "settings"
+
+    def test_with_all_parameters(self):
+        """Test ViewError with all available parameters."""
+        cause = ImportError("Import error")
+        error = ViewError(
+            "View initialization failed", route="/settings", view_name="SettingsView", cause=cause
+        )
+        assert error.route == "/settings"
+        assert error.view_name == "SettingsView"
+        assert error.cause == cause
+
+    def test_none_view_attributes(self):
+        """Test explicit None view attributes handling."""
+        error = ViewError("Error", route=None, view_name=None)
+        assert error.route is None
+        assert error.view_name is None
+
+
+class TestNavigationError:
+    """Test suite for NavigationError exception class.
+
+    This class tests the NavigationError exception, which extends GUIError
+    for navigation operations. Tests cover route handling along with
+    inheritance behavior.
+    """
+
+    def test_inheritance(self):
+        """Test inheritance hierarchy through GUIError to TJDError."""
+        error = NavigationError("Navigation failed")
+        assert isinstance(error, GUIError)
+        assert isinstance(error, TJDError)
+        assert isinstance(error, Exception)
+
+    def test_basic_functionality(self):
+        """Test basic NavigationError instantiation and attributes."""
+        error = NavigationError("Invalid route")
+        assert error.message == "Invalid route"
+        assert error.route is None
+
+    def test_with_route(self):
+        """Test NavigationError creation with route context."""
+        error = NavigationError("Route not found", route="/invalid/path")
+        assert error.message == "Route not found"
+        assert error.route == "/invalid/path"
+
+    def test_with_cause(self):
+        """Test NavigationError creation with exception chaining."""
+        cause = KeyError("Key error")
+        error = NavigationError("Navigation failed", route="/error", cause=cause)
+        assert error.route == "/error"
+        assert error.cause == cause
+
+    def test_none_route(self):
+        """Test explicit None route handling."""
+        error = NavigationError("Error", route=None)
+        assert error.route is None
+
+
+class TestHomeViewError:
+    """Test suite for HomeViewError exception class.
+
+    This class tests the HomeViewError exception, which extends ViewError
+    for home view specific operations. Tests cover component handling along
+    with inherited route and view name attributes from ViewError.
+    """
+
+    def test_inheritance(self):
+        """Test inheritance hierarchy through ViewError to GUIError to TJDError."""
+        error = HomeViewError("Home view operation failed")
+        assert isinstance(error, ViewError)
+        assert isinstance(error, GUIError)
+        assert isinstance(error, TJDError)
+        assert isinstance(error, Exception)
+
+    def test_basic_functionality(self):
+        """Test basic HomeViewError instantiation and attributes."""
+        error = HomeViewError("Failed to initialize home view")
+        assert error.message == "Failed to initialize home view"
+        assert error.route is None
+        assert error.view_name is None
+        assert error.component is None
+
+    def test_with_component(self):
+        """Test HomeViewError creation with component context."""
+        error = HomeViewError("Component loading failed", component="tools_grid")
+        assert error.message == "Component loading failed"
+        assert error.route is None
+        assert error.view_name is None
+        assert error.component == "tools_grid"
+
+    def test_with_route(self):
+        """Test HomeViewError creation with route context."""
+        error = HomeViewError("Route handling failed", route="/home")
+        assert error.message == "Route handling failed"
+        assert error.route == "/home"
+        assert error.view_name is None
+        assert error.component is None
+
+    def test_with_view_name(self):
+        """Test HomeViewError creation with view name context."""
+        error = HomeViewError("View loading failed", view_name="HomeView")
+        assert error.message == "View loading failed"
+        assert error.route is None
+        assert error.view_name == "HomeView"
+        assert error.component is None
+
+    def test_with_route_and_component(self):
+        """Test HomeViewError creation with route and component context."""
+        error = HomeViewError("Navigation failed", route="/home", component="nav_bar")
+        assert error.message == "Navigation failed"
+        assert error.route == "/home"
+        assert error.view_name is None
+        assert error.component == "nav_bar"
+
+    def test_with_all_parameters(self):
+        """Test HomeViewError with all available parameters."""
+        cause = RuntimeError("Runtime error")
+        error = HomeViewError(
+            "Home view initialization failed",
+            route="/home",
+            view_name="HomeView",
+            component="tools_grid",
+            cause=cause,
+        )
+        assert error.message == "Home view initialization failed"
+        assert error.route == "/home"
+        assert error.view_name == "HomeView"
+        assert error.component == "tools_grid"
+        assert error.cause == cause
+
+    def test_with_cause(self):
+        """Test HomeViewError creation with exception chaining."""
+        cause = ValueError("Invalid component configuration")
+        error = HomeViewError("Component setup failed", component="tools_grid", cause=cause)
+        assert error.message == "Component setup failed"
+        assert error.component == "tools_grid"
+        assert error.cause == cause
+
+    def test_none_home_view_attributes(self):
+        """Test explicit None home view attributes handling."""
+        error = HomeViewError("Error", route=None, view_name=None, component=None)
+        assert error.route is None
+        assert error.view_name is None
+        assert error.component is None
 
 
 class TestExceptionHierarchy:
@@ -330,14 +704,39 @@ class TestExceptionHierarchy:
         with pytest.raises(ConfigurationError):
             raise JSONParsingError("test error")
 
+        # HomeViewError should be catchable as ViewError
+        with pytest.raises(ViewError):
+            raise HomeViewError("test error")
+
+        # All GUI exceptions should be catchable as GUIError
+        gui_exceptions = [
+            FontError("test"),
+            ThemeError("test"),
+            WindowError("test"),
+            ViewError("test"),
+            NavigationError("test"),
+            HomeViewError("test"),
+        ]
+
+        for exc in gui_exceptions:
+            with pytest.raises(GUIError):
+                raise exc
+
         # All exceptions should be catchable as TJDError
         exceptions_to_test = [
             ConfigurationError("test"),
             OperationError("op", "test"),
-            FileOperationError("read", "test"),
-            ValidationError("test"),
-            JSONParsingError("test"),
             PlatformError("test"),
+            ValidationError("test"),
+            GUIError("test"),
+            FileOperationError("read", "test"),
+            JSONParsingError("test"),
+            FontError("test"),
+            ThemeError("test"),
+            WindowError("test"),
+            ViewError("test"),
+            NavigationError("test"),
+            HomeViewError("test"),
         ]
 
         for exc in exceptions_to_test:
@@ -348,9 +747,26 @@ class TestExceptionHierarchy:
         """Test catching specific exception types and accessing attributes."""
         with pytest.raises(FileOperationError) as exc_info:
             raise FileOperationError("write", "disk full", "/tmp/file")
-
         assert exc_info.value.operation == "write"
         assert exc_info.value.file_path == "/tmp/file"
+
+        with pytest.raises(FontError) as exc_info:
+            raise FontError("font error", font_name="Arial", font_path="/fonts/arial.ttf")
+        assert exc_info.value.font_name == "Arial"
+        assert exc_info.value.font_path == "/fonts/arial.ttf"
+
+        with pytest.raises(ThemeError) as exc_info:
+            raise ThemeError("theme error", theme_name="dark", component="button")
+        assert exc_info.value.theme_name == "dark"
+        assert exc_info.value.component == "button"
+
+        with pytest.raises(HomeViewError) as exc_info:
+            raise HomeViewError(
+                "home view error", route="/home", view_name="HomeView", component="tools_grid"
+            )
+        assert exc_info.value.route == "/home"
+        assert exc_info.value.view_name == "HomeView"
+        assert exc_info.value.component == "tools_grid"
 
 
 class TestModuleExports:
@@ -369,10 +785,17 @@ class TestModuleExports:
             "TJDError",
             "ConfigurationError",
             "OperationError",
-            "FileOperationError",
-            "ValidationError",
-            "JSONParsingError",
             "PlatformError",
+            "ValidationError",
+            "GUIError",
+            "FileOperationError",
+            "JSONParsingError",
+            "FontError",
+            "ThemeError",
+            "WindowError",
+            "ViewError",
+            "NavigationError",
+            "HomeViewError",
         ]
 
         assert set(__all__) == set(expected_exports)
@@ -415,9 +838,32 @@ class TestExceptionIntegration:
         """
         ConfigurationError("Config error")
         ValidationError("Validation error")
+        GUIError("GUI error")
+        FontError("Font error")
 
-        # Both should trigger logging since they inherit from TJDError
-        assert mock_logger.debug.call_count == 2
+        # All should trigger logging since they inherit from TJDError
+        assert mock_logger.debug.call_count == 4
+
+    def test_gui_error_scenario(self):
+        """Test a realistic GUI error handling scenario."""
+        # Simulate a theme loading error that cascades through components
+        with pytest.raises(ThemeError) as exc_info:
+            try:
+                # Simulate font loading failure
+                raise FileNotFoundError("Font file not found")
+            except FileNotFoundError as e:
+                raise ThemeError(
+                    "Failed to apply theme",
+                    theme_name="dark",
+                    component="main_window",
+                    cause=e,
+                )
+
+        error = exc_info.value
+        assert error.theme_name == "dark"
+        assert error.component == "main_window"
+        assert isinstance(error.cause, FileNotFoundError)
+        assert "Failed to apply theme" in str(error)
 
     def test_real_world_scenario(self):
         """Test a realistic error handling scenario with file operations."""
@@ -460,15 +906,51 @@ class TestParametrizedExceptions:
                 {"operation": "op", "message": "op failed: msg"},
             ),
             (
+                PlatformError,
+                ("platform error",),
+                {"message": "platform error", "platform": None},
+            ),
+            (
                 ValidationError,
                 ("invalid",),
                 {"message": "invalid", "field": None, "value": None},
             ),
+            (GUIError, ("gui error",), {"message": "gui error"}),
+            (
+                FileOperationError,
+                ("read", "error"),
+                {"operation": "read", "message": "read failed: error", "file_path": None},
+            ),
             (JSONParsingError, ("json error",), {"message": "json error"}),
             (
-                PlatformError,
-                ("platform error",),
-                {"message": "platform error", "platform": None},
+                FontError,
+                ("font error",),
+                {"message": "font error", "font_name": None, "font_path": None},
+            ),
+            (
+                ThemeError,
+                ("theme error",),
+                {"message": "theme error", "theme_name": None, "component": None},
+            ),
+            (
+                WindowError,
+                ("window error",),
+                {"message": "window error", "window_id": None, "property_name": None},
+            ),
+            (
+                ViewError,
+                ("view error",),
+                {"message": "view error", "route": None, "view_name": None},
+            ),
+            (
+                NavigationError,
+                ("nav error",),
+                {"message": "nav error", "route": None},
+            ),
+            (
+                HomeViewError,
+                ("home view error",),
+                {"message": "home view error", "route": None, "view_name": None, "component": None},
             ),
         ],
     )
@@ -481,9 +963,7 @@ class TestParametrizedExceptions:
             expected_attrs: Dictionary of expected attribute values.
         """
         exc = exception_class(*args)
-
         for attr, expected_value in expected_attrs.items():
             assert getattr(exc, attr) == expected_value
-
         assert isinstance(exc, TJDError)
         assert isinstance(exc, Exception)
