@@ -1,6 +1,6 @@
 [project]
 name = "tjd-toolkit"
-version = "0.1.0"
+version = "0.1.9"
 description = "A collection of simple tools for your digital toolbelt"
 authors = [
     {name = "odyss3an-th3rsit3s", email = "199909392+odyss3an-th3rsit3s@users.noreply.github.com"}
@@ -51,7 +51,7 @@ dev = [
 ]
 
 [tool.poetry]
-packages = [{include = "gui"}, {include = "internal"}]
+packages = [{include = "gui"}, {include = "internal"}, {include = "tools"}]
 
 [build-system]
 requires = ["poetry-core>=2.0.0"]

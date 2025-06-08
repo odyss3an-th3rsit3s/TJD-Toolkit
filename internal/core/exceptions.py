@@ -36,6 +36,7 @@ __all__ = [
     "ViewError",
     "NavigationError",
     "HomeViewError",
+    "ToolViewError",
 ]
 
 logger = logging.getLogger(__name__)
@@ -480,6 +481,47 @@ class HomeViewError(ViewError):
 
         Args:
             message (str): Description of the home view error.
+            route (Optional[str]): Associated route. Defaults to None.
+            view_name (Optional[str]): Name of the view. Defaults to None.
+            component (Optional[str]): Failed component. Defaults to None.
+            cause (Optional[Exception]): Original error. Defaults to None.
+        """
+        super().__init__(message, route, view_name, cause)
+        self.component = component
+
+
+class ToolViewError(ViewError):
+    """Signal tool view specific operation failures.
+
+    Indicate failures specific to tool view operations including UI setup,
+    tool loading, navigation initialization, and core logic interaction errors.
+    Inherits from ViewError to maintain the view error hierarchy.
+
+    Attributes:
+        route (Optional[str]): Route where the error occurred.
+        view_name (Optional[str]): Name of the affected view.
+        component (Optional[str]): Specific tool view component that failed.
+
+    Example:
+        >>> try:
+        ...     raise ToolViewError("Failed to create header", component="header")
+        ... except ToolViewError as e:
+        ...     print(f"Tool view error: {e}")
+        Tool view error: Failed to create header
+    """
+
+    def __init__(
+        self,
+        message: str,
+        route: Optional[str] = None,
+        view_name: Optional[str] = None,
+        component: Optional[str] = None,
+        cause: Optional[Exception] = None,
+    ) -> None:
+        """Initialize tool view error with context.
+
+        Args:
+            message (str): Description of the tool view error.
             route (Optional[str]): Associated route. Defaults to None.
             view_name (Optional[str]): Name of the view. Defaults to None.
             component (Optional[str]): Failed component. Defaults to None.

@@ -36,6 +36,7 @@ from internal.core.exceptions import (
     ViewError,
     NavigationError,
     HomeViewError,
+    ToolViewError,
 )
 
 
@@ -686,6 +687,94 @@ class TestHomeViewError:
         assert error.component is None
 
 
+class TestToolViewError:
+    """Test suite for ToolViewError exception class.
+
+    This class tests the ToolViewError exception, which extends ViewError
+    for tool view specific operations. Tests cover component handling along
+    with inherited route and view name attributes from ViewError.
+    """
+
+    def test_inheritance(self):
+        """Test inheritance hierarchy through ViewError to GUIError to TJDError."""
+        error = ToolViewError("Tool view operation failed")
+        assert isinstance(error, ViewError)
+        assert isinstance(error, GUIError)
+        assert isinstance(error, TJDError)
+        assert isinstance(error, Exception)
+
+    def test_basic_functionality(self):
+        """Test basic ToolViewError instantiation and attributes."""
+        error = ToolViewError("Failed to initialize tool view")
+        assert error.message == "Failed to initialize tool view"
+        assert error.route is None
+        assert error.view_name is None
+        assert error.component is None
+
+    def test_with_component(self):
+        """Test ToolViewError creation with component context."""
+        error = ToolViewError("Component loading failed", component="header")
+        assert error.message == "Component loading failed"
+        assert error.route is None
+        assert error.view_name is None
+        assert error.component == "header"
+
+    def test_with_route(self):
+        """Test ToolViewError creation with route context."""
+        error = ToolViewError("Route handling failed", route="/tool")
+        assert error.message == "Route handling failed"
+        assert error.route == "/tool"
+        assert error.view_name is None
+        assert error.component is None
+
+    def test_with_view_name(self):
+        """Test ToolViewError creation with view name context."""
+        error = ToolViewError("View loading failed", view_name="ToolView")
+        assert error.message == "View loading failed"
+        assert error.route is None
+        assert error.view_name == "ToolView"
+        assert error.component is None
+
+    def test_with_route_and_component(self):
+        """Test ToolViewError creation with route and component context."""
+        error = ToolViewError("Navigation failed", route="/tool", component="nav_bar")
+        assert error.message == "Navigation failed"
+        assert error.route == "/tool"
+        assert error.view_name is None
+        assert error.component == "nav_bar"
+
+    def test_with_all_parameters(self):
+        """Test ToolViewError with all available parameters."""
+        cause = RuntimeError("Runtime error")
+        error = ToolViewError(
+            "Tool view initialization failed",
+            route="/tool",
+            view_name="ToolView",
+            component="header",
+            cause=cause,
+        )
+        assert error.message == "Tool view initialization failed"
+        assert error.route == "/tool"
+        assert error.view_name == "ToolView"
+        assert error.component == "header"
+        assert error.cause == cause
+
+    def test_with_cause(self):
+        """Test ToolViewError creation with exception chaining."""
+        cause = ValueError("Invalid component configuration")
+        error = ToolViewError("Component setup failed", component="header", cause=cause)
+        assert error.message == "Component setup failed"
+        assert error.component == "header"
+        assert error.cause == cause
+
+    def test_none_tool_view_attributes(self):
+        """Test explicit None tool view attributes handling."""
+        error = ToolViewError("Error", route=None, view_name=None, component=None)
+        assert error.route is None
+        assert error.view_name is None
+        assert error.component is None
+
+
 class TestExceptionHierarchy:
     """Test suite for exception hierarchy and catching behavior.
 
@@ -708,6 +797,10 @@ class TestExceptionHierarchy:
         with pytest.raises(ViewError):
             raise HomeViewError("test error")
 
+        # ToolViewError should be catchable as ViewError
+        with pytest.raises(ViewError):
+            raise ToolViewError("test error")
+
         # All GUI exceptions should be catchable as GUIError
         gui_exceptions = [
             FontError("test"),
@@ -716,6 +809,7 @@ class TestExceptionHierarchy:
             ViewError("test"),
             NavigationError("test"),
             HomeViewError("test"),
+            ToolViewError("test"),
         ]
 
         for exc in gui_exceptions:
@@ -737,6 +831,7 @@ class TestExceptionHierarchy:
             ViewError("test"),
             NavigationError("test"),
             HomeViewError("test"),
+            ToolViewError("test"),
         ]
 
         for exc in exceptions_to_test:
@@ -768,6 +863,14 @@ class TestExceptionHierarchy:
         assert exc_info.value.view_name == "HomeView"
         assert exc_info.value.component == "tools_grid"
 
+        with pytest.raises(ToolViewError) as exc_info:
+            raise ToolViewError(
+                "tool view error", route="/tool", view_name="ToolView", component="header"
+            )
+        assert exc_info.value.route == "/tool"
+        assert exc_info.value.view_name == "ToolView"
+        assert exc_info.value.component == "header"
+
 
 class TestModuleExports:
     """Test suite for module exports and public interface.
@@ -796,6 +899,7 @@ class TestModuleExports:
             "ViewError",
             "NavigationError",
             "HomeViewError",
+            "ToolViewError",
         ]
 
         assert set(__all__) == set(expected_exports)
@@ -951,6 +1055,11 @@ class TestParametrizedExceptions:
                 HomeViewError,
                 ("home view error",),
                 {"message": "home view error", "route": None, "view_name": None, "component": None},
+            ),
+            (
+                ToolViewError,
+                ("tool view error",),
+                {"message": "tool view error", "route": None, "view_name": None, "component": None},
             ),
         ],
     )
