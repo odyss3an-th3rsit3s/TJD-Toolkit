@@ -11,14 +11,14 @@ Example:
     >>> view.setup_ui()
 
 Attributes:
-    __all__ (List[str]): Symbols exposed in public interface.
+    __all__ (List[str]): Public interface exports.
     logger (logging.Logger): Module-level logging instance.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import flet as ft
 
@@ -54,11 +54,19 @@ class HomeView(ft.View):
         HomeViewError: When view initialization or critical operations fail.
     """
 
+    AVAILABLE_TOOLS: Dict[str, Dict[str, Any]] = {
+        "Feature Eins": {
+            "description": "Wouldn't you like to know...",
+            "icon": ft.Icons.HOURGLASS_EMPTY,
+            "color": ft.Colors.ORANGE,
+        },
+    }
+
     COMING_SOON_TOOLS: List[str] = [
-        "Feature Eins"
-        # "Feature Zwei"
-        # "Feature Drei",
-        # "Feature Vier"
+        "Feature Zwei",
+        # "Feature Drei"
+        # "Feature Vier",
+        # "Feature Fünf"
     ]
 
     def __init__(self, page: ft.Page | None) -> None:
@@ -315,7 +323,28 @@ class HomeView(ft.View):
                 run_spacing=10,
             )
 
-            # Add coming soon tools with individual error handling
+            # Add available tools
+            for tool_name, tool_config in self.AVAILABLE_TOOLS.items():
+                try:
+                    tools_grid.controls.append(
+                        self._create_tool_card(
+                            tool_name,
+                            tool_config["description"],
+                            tool_config["icon"],
+                            tool_config["color"],
+                        )
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to create card for {tool_name}: {e}")
+                    raise HomeViewError(
+                        f"Failed to create card for {tool_name}",
+                        route=self.route,
+                        view_name="HomeView",
+                        component="available_tool_card",
+                        cause=e,
+                    )
+
+            # Add coming soon tools
             for tool_name in self.COMING_SOON_TOOLS:
                 try:
                     tools_grid.controls.append(self._create_coming_soon_card(tool_name))
@@ -325,7 +354,7 @@ class HomeView(ft.View):
                         f"Failed to create card for {tool_name}",
                         route=self.route,
                         view_name="HomeView",
-                        component="tool_card",
+                        component="coming_soon_tool_card",
                         cause=e,
                     )
 
@@ -396,5 +425,54 @@ class HomeView(ft.View):
                 route=self.route,
                 view_name="HomeView",
                 component="coming_soon_card",
+                cause=e,
+            )
+
+    def _create_tool_card(
+        self, tool_name: str, tool_description: str, icon: ft.Icons, color: ft.Colors
+    ) -> ft.Card:
+        """Create card component for specified tool.
+
+        Args:
+            tool_name (str): Name of the specified tool.
+            tool_description (str): Description text displayed on the tool card.
+            icon (ft.Icons): Icon to display on the card. Defaults to REFRESH.
+            color (ft.Colors): Color of the icon. Defaults to BLUE.
+
+        Returns:
+            ft.Card: Interactive card for launching specified tool.
+
+        Raises:
+            HomeViewError: When card creation or component styling fails.
+        """
+        try:
+            route_name = "/" + tool_name.replace(" ", "").lower()
+
+            card = ft.Card(
+                content=ft.Container(
+                    content=ft.Column(
+                        [
+                            ft.Icon(icon, size=40, color=color),
+                            ft.Text(tool_name, weight=ft.FontWeight.BOLD),
+                            ft.Text(tool_description, size=12),
+                        ],
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                    padding=20,
+                    on_click=lambda _: self._navigate_to_tool(route_name, tool_name),
+                    animate_scale=300,  # Duration in milliseconds
+                    animate_opacity=300,
+                    on_hover=lambda e: self._handle_card_hover(e, card),
+                ),
+                elevation=2,
+            )
+            return card
+        except Exception as e:
+            logger.error(f"Failed to create coming soon card for '{tool_name}': {e}")
+            raise HomeViewError(
+                f"Failed to create coming soon card for {tool_name}",
+                route=self.route,
+                view_name="HomeView",
+                component="available_card",
                 cause=e,
             )

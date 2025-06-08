@@ -33,6 +33,7 @@ from internal.core.exceptions import (
 )
 from gui.utils.font_utils import FontManager
 from gui.views.home import HomeView
+from gui.views.PUC.featureeins import FeatureEinsView
 
 __all__ = ["TJDToolkitApp", "main"]
 
@@ -224,7 +225,8 @@ class TJDToolkitApp:
             self.page.views.clear()
 
             route_map = {
-                "/": HomeView
+                "/": HomeView,
+                "/featureeins": FeatureEinsView,
                 # Add tool routes here
             }
 

@@ -10,6 +10,7 @@ The test suite covers:
     - Loading overlay functionality
     - Navigation and tool routing
     - Card interaction and hover effects
+    - Available and coming soon tool card creation
     - Comprehensive error handling and recovery
     - Integration workflows and edge cases
 
@@ -168,6 +169,23 @@ class TestHomeViewInitialization:
         assert "Cannot initialize HomeView with None page reference" in error.message
         assert hasattr(error, "cause")
 
+    def test_available_tools_class_attribute(self):
+        """Test that AVAILABLE_TOOLS class attribute is properly defined.
+
+        Validates that the class-level constant is correctly configured
+        and contains expected tool entries with proper structure.
+        """
+        # Assert
+        assert hasattr(HomeView, "AVAILABLE_TOOLS")
+        assert isinstance(HomeView.AVAILABLE_TOOLS, dict)
+        assert "Feature Eins" in HomeView.AVAILABLE_TOOLS
+
+        # Verify structure of available tools
+        tool_config = HomeView.AVAILABLE_TOOLS["Feature Eins"]
+        assert "description" in tool_config
+        assert "icon" in tool_config
+        assert "color" in tool_config
+
     def test_coming_soon_tools_class_attribute(self):
         """Test that COMING_SOON_TOOLS class attribute is properly defined.
 
@@ -177,7 +195,7 @@ class TestHomeViewInitialization:
         # Assert
         assert hasattr(HomeView, "COMING_SOON_TOOLS")
         assert isinstance(HomeView.COMING_SOON_TOOLS, list)
-        assert "Feature Eins" in HomeView.COMING_SOON_TOOLS
+        assert "Feature Zwei" in HomeView.COMING_SOON_TOOLS
         assert len(HomeView.COMING_SOON_TOOLS) >= 1
 
 
@@ -306,13 +324,13 @@ class TestHomeViewUIComponents:
         assert error.cause == font_error
 
     @patch("gui.views.home.fontify")
-    def test_create_tools_grid_success_with_cards(
+    def test_create_tools_grid_success_with_all_cards(
         self, mock_fontify, mock_flet_dependency, mock_page, reset_global_state
     ):
-        """Test successful tools grid creation with coming soon cards.
+        """Test successful tools grid creation with available and coming soon cards.
 
         Validates that tools grid is created with proper card components
-        for each tool in COMING_SOON_TOOLS using the mocked Flet components.
+        for both available tools and coming soon tools using the mocked Flet components.
 
         Args:
             mock_fontify: Mocked fontify utility.
@@ -324,8 +342,13 @@ class TestHomeViewUIComponents:
         mock_fontify.return_value = MagicMock()
         home_view = HomeView(mock_page)
 
-        with patch.object(home_view, "_create_coming_soon_card") as mock_card:
-            mock_card.return_value = MagicMock()
+        with (
+            patch.object(home_view, "_create_tool_card") as mock_tool_card,
+            patch.object(home_view, "_create_coming_soon_card") as mock_coming_soon_card,
+        ):
+
+            mock_tool_card.return_value = MagicMock()
+            mock_coming_soon_card.return_value = MagicMock()
 
             # Act
             result = home_view._create_tools_grid()
@@ -333,17 +356,25 @@ class TestHomeViewUIComponents:
             # Assert
             assert result is not None
             mock_flet_dependency.GridView.assert_called()
-            # Verify card creation for each tool
+
+            # Verify available tool card creation
+            for tool_name in HomeView.AVAILABLE_TOOLS.keys():
+                tool_config = HomeView.AVAILABLE_TOOLS[tool_name]
+                mock_tool_card.assert_any_call(
+                    tool_name, tool_config["description"], tool_config["icon"], tool_config["color"]
+                )
+
+            # Verify coming soon card creation
             for tool in HomeView.COMING_SOON_TOOLS:
-                mock_card.assert_any_call(tool)
+                mock_coming_soon_card.assert_any_call(tool)
 
     @patch("gui.views.home.fontify")
-    def test_create_tools_grid_card_creation_error(
+    def test_create_tools_grid_available_tool_card_error(
         self, mock_fontify, mock_page, reset_global_state
     ):
-        """Test tools grid creation handles card creation errors.
+        """Test tools grid creation handles available tool card creation errors.
 
-        Validates that HomeViewError is properly raised when card creation
+        Validates that HomeViewError is properly raised when available tool card creation
         fails for any tool in the grid.
 
         Args:
@@ -352,15 +383,20 @@ class TestHomeViewUIComponents:
             reset_global_state: State reset fixture.
 
         Raises:
-            HomeViewError: Expected exception when card creation fails.
+            HomeViewError: Expected exception when available tool card creation fails.
         """
         # Arrange
         mock_fontify.return_value = MagicMock()
         home_view = HomeView(mock_page)
 
-        with patch.object(home_view, "_create_coming_soon_card") as mock_card:
-            card_error = RuntimeError("Card creation failed")
-            mock_card.side_effect = card_error
+        with (
+            patch.object(home_view, "_create_tool_card") as mock_tool_card,
+            patch.object(home_view, "_create_coming_soon_card") as mock_coming_soon_card,
+        ):
+
+            card_error = RuntimeError("Available tool card creation failed")
+            mock_tool_card.side_effect = card_error
+            mock_coming_soon_card.return_value = MagicMock()
 
             # Act & Assert
             with pytest.raises(HomeViewError) as exc_info:
@@ -368,6 +404,46 @@ class TestHomeViewUIComponents:
 
             error = exc_info.value
             assert "Failed to create card for" in error.message
+            assert error.component == "available_tool_card"
+            assert error.cause == card_error
+
+    @patch("gui.views.home.fontify")
+    def test_create_tools_grid_coming_soon_card_error(
+        self, mock_fontify, mock_page, reset_global_state
+    ):
+        """Test tools grid creation handles coming soon card creation errors.
+
+        Validates that HomeViewError is properly raised when coming soon card creation
+        fails for any tool in the grid.
+
+        Args:
+            mock_fontify: Mocked fontify utility.
+            mock_page: Mock page fixture.
+            reset_global_state: State reset fixture.
+
+        Raises:
+            HomeViewError: Expected exception when coming soon card creation fails.
+        """
+        # Arrange
+        mock_fontify.return_value = MagicMock()
+        home_view = HomeView(mock_page)
+
+        with (
+            patch.object(home_view, "_create_tool_card") as mock_tool_card,
+            patch.object(home_view, "_create_coming_soon_card") as mock_coming_soon_card,
+        ):
+
+            mock_tool_card.return_value = MagicMock()
+            card_error = RuntimeError("Coming soon card creation failed")
+            mock_coming_soon_card.side_effect = card_error
+
+            # Act & Assert
+            with pytest.raises(HomeViewError) as exc_info:
+                home_view._create_tools_grid()
+
+            error = exc_info.value
+            assert "Failed to create card for" in error.message
+            assert error.component == "coming_soon_tool_card"
             assert error.cause == card_error
 
     @patch("gui.views.home.fontify")
@@ -866,18 +942,18 @@ class TestHomeViewCardInteraction:
 
 
 class TestHomeViewCardCreation:
-    """Test HomeView coming soon card creation functionality.
+    """Test HomeView card creation functionality for both available and coming soon tools.
 
     This class contains tests for individual card creation, styling,
-    and error handling during card component initialization.
+    and error handling during card component initialization for both
+    interactive available tool cards and placeholder coming soon cards.
     """
 
     @pytest.mark.parametrize(
         "tool_name",
         [
-            "Feature Eins",
-            "Password Generator",
-            "Network Scanner",
+            "Feature Zwei",
+            "Another Coming Soon Tool",
             "Tool with Spaces",
             "Tool-with-Dashes",
             "Tool_with_Underscores",
@@ -939,6 +1015,90 @@ class TestHomeViewCardCreation:
         # Act & Assert
         with pytest.raises(HomeViewError) as exc_info:
             home_view._create_coming_soon_card(tool_name)
+
+        error = exc_info.value
+        assert f"Failed to create coming soon card for {tool_name}" in error.message
+        assert error.cause == card_error
+
+    @pytest.mark.parametrize(
+        "tool_name,description",
+        [
+            ("Feature Eins", "Test description"),
+            ("Password Generator", "Generate secure passwords"),
+            ("Network Scanner", "Scan network for devices"),
+            ("Tool with Spaces", "Description with spaces"),
+        ],
+    )
+    @patch("gui.views.home.fontify")
+    def test_create_tool_card_various_configurations(
+        self,
+        mock_fontify,
+        mock_flet_dependency,
+        tool_name,
+        description,
+        mock_page,
+        reset_global_state,
+    ):
+        """Test available tool card creation with various tool configurations.
+
+        Validates that interactive tool card creation handles different tool
+        configurations correctly using parametrized testing.
+
+        Args:
+            mock_fontify: Mocked fontify utility.
+            mock_flet_dependency: Mocked flet module with UI components.
+            tool_name (str): Tool name to test card creation with.
+            description (str): Tool description to test.
+            mock_page: Mock page fixture.
+            reset_global_state: State reset fixture.
+        """
+        # Arrange
+        mock_fontify.return_value = MagicMock()
+        home_view = HomeView(mock_page)
+
+        # Use mock Flet components for icon and color
+        mock_icon = mock_flet_dependency.Icons.REFRESH
+        mock_color = mock_flet_dependency.Colors.BLUE
+
+        # Act
+        result = home_view._create_tool_card(tool_name, description, mock_icon, mock_color)
+
+        # Assert
+        assert result is not None
+        mock_flet_dependency.Card.assert_called()
+
+    @patch("gui.views.home.fontify")
+    def test_create_tool_card_component_error(
+        self, mock_fontify, mock_flet_dependency, mock_page, reset_global_state
+    ):
+        """Test available tool card creation handles component errors.
+
+        Validates that HomeViewError is properly raised when interactive
+        tool card component creation fails.
+
+        Args:
+            mock_fontify: Mocked fontify utility.
+            mock_flet_dependency: Mocked flet module with UI components.
+            mock_page: Mock page fixture.
+            reset_global_state: State reset fixture.
+
+        Raises:
+            HomeViewError: Expected exception when tool card creation fails.
+        """
+        # Arrange
+        mock_fontify.return_value = MagicMock()
+        home_view = HomeView(mock_page)
+        tool_name = "Test Tool"
+        description = "Test description"
+        mock_icon = mock_flet_dependency.Icons.REFRESH
+        mock_color = mock_flet_dependency.Colors.BLUE
+
+        card_error = RuntimeError("Tool card creation failed")
+        mock_flet_dependency.Card.side_effect = card_error
+
+        # Act & Assert
+        with pytest.raises(HomeViewError) as exc_info:
+            home_view._create_tool_card(tool_name, description, mock_icon, mock_color)
 
         error = exc_info.value
         assert f"Failed to create coming soon card for {tool_name}" in error.message
@@ -1128,17 +1288,32 @@ class TestModuleConstants:
     def test_home_view_class_constants(self):
         """Test HomeView class-level constants.
 
-        Validates that class constants are properly defined
-        and have expected values and types.
+        Validates that both AVAILABLE_TOOLS and COMING_SOON_TOOLS class constants
+        are properly defined and have expected values and types.
 
         Raises:
             AssertionError: If constants are not properly defined.
         """
+        # Test AVAILABLE_TOOLS
+        assert hasattr(HomeView, "AVAILABLE_TOOLS")
+        assert isinstance(HomeView.AVAILABLE_TOOLS, dict)
+        assert len(HomeView.AVAILABLE_TOOLS) > 0
+
+        # Verify expected available tools are present
+        expected_available_tools = ["Feature Eins"]
+        for tool in expected_available_tools:
+            assert tool in HomeView.AVAILABLE_TOOLS
+            tool_config = HomeView.AVAILABLE_TOOLS[tool]
+            assert "description" in tool_config
+            assert "icon" in tool_config
+            assert "color" in tool_config
+
+        # Test COMING_SOON_TOOLS
         assert hasattr(HomeView, "COMING_SOON_TOOLS")
         assert isinstance(HomeView.COMING_SOON_TOOLS, list)
         assert len(HomeView.COMING_SOON_TOOLS) > 0
 
-        # Verify expected tools are present
-        expected_tools = ["Feature Eins"]
-        for tool in expected_tools:
+        # Verify expected coming soon tools are present
+        expected_coming_soon_tools = ["Feature Zwei"]
+        for tool in expected_coming_soon_tools:
             assert tool in HomeView.COMING_SOON_TOOLS

@@ -96,22 +96,37 @@ def reset_global_state():
 
 @pytest.fixture
 def mock_view_imports():
-    """Mock all view imports that aren't ready yet.
+    """Mock all view imports that aren't/are ready (yet).
 
     This fixture mocks the HomeView and other view imports to allow
     testing without the actual view files being implemented.
 
     Yields:
-        dict: Dictionary of mocked view classes for test use.
+        dict: Dictionary of mocked view classes and instances for test use.
     """
-    with patch("gui.main.HomeView") as mock_home_view:
+    with (
+        patch("gui.main.HomeView") as mock_home_view,
+        patch("gui.main.FeatureEinsView") as mock_feature_eins_view,
+    ):
+
+        # Setup HomeView mock
         mock_home_view.__name__ = "HomeView"
+        mock_home_view_instance = MagicMock()
+        mock_home_view_instance.route = "/"
+        mock_home_view.return_value = mock_home_view_instance
 
-        mock_view_instance = MagicMock()
-        mock_view_instance.route = "/"
-        mock_home_view.return_value = mock_view_instance
+        # Setup FeatureEinsView mock
+        mock_feature_eins_view.__name__ = "FeatureEinsView"
+        mock_feature_eins_view_instance = MagicMock()
+        mock_feature_eins_view_instance.route = "/featureeins"
+        mock_feature_eins_view.return_value = mock_feature_eins_view_instance
 
-        yield {"HomeView": mock_home_view, "home_view_instance": mock_view_instance}
+        yield {
+            "HomeView": mock_home_view,
+            "home_view_instance": mock_home_view_instance,
+            "FeatureEinsView": mock_feature_eins_view,
+            "feature_eins_view_instance": mock_feature_eins_view_instance,
+        }
 
 
 class TestTJDToolkitAppInitialization:
@@ -569,7 +584,7 @@ class TestTJDToolkitAppNavigationManagement:
 
     This class contains comprehensive tests for navigation setup,
     route handling, view management, error recovery scenarios,
-    and mocked view behavior when views are not yet implemented.
+    and mocked view behavior for all implemented + to-be implemented routes.
     """
 
     def test_setup_navigation_success_workflow(self, mock_page, reset_global_state):
@@ -656,26 +671,42 @@ class TestTJDToolkitAppNavigationManagement:
         assert error.route == "/"
         assert isinstance(error.cause, OSError)
 
-    def test_handle_route_change_home_route_success(
-        self, mock_page, reset_global_state, mock_view_imports
+    @pytest.mark.parametrize(
+        "route,expected_view_key,expected_instance_key",
+        [
+            ("/", "HomeView", "home_view_instance"),
+            ("/featureeins", "FeatureEinsView", "feature_eins_view_instance"),
+        ],
+    )
+    def test_handle_route_change_success_all_routes(
+        self,
+        route,
+        expected_view_key,
+        expected_instance_key,
+        mock_page,
+        reset_global_state,
+        mock_view_imports,
     ):
-        """Test route change handling for home route success.
+        """Test route change handling for all implemented routes.
 
-        Validates that home route changes are handled correctly with
+        Validates that all route changes are handled correctly with
         proper view initialization and page updates using mocked views.
 
         Args:
+            route (str): Route path to test.
+            expected_view_key (str): Key for expected view class in mock_view_imports.
+            expected_instance_key (str): Key for expected view instance in mock_view_imports.
             mock_page: Mock page fixture.
             reset_global_state: State reset fixture.
             mock_view_imports: Mocked view imports fixture.
         """
         # Arrange
-        mock_home_view_class = mock_view_imports["HomeView"]
-        mock_view = mock_view_imports["home_view_instance"]
+        mock_view_class = mock_view_imports[expected_view_key]
+        mock_view_instance = mock_view_imports[expected_instance_key]
 
         app = TJDToolkitApp.__new__(TJDToolkitApp)
         app.page = mock_page
-        mock_page.route = "/"
+        mock_page.route = route
 
         route_event = MagicMock()
 
@@ -684,8 +715,8 @@ class TestTJDToolkitAppNavigationManagement:
 
         # Assert
         mock_page.views.clear.assert_called_once()
-        mock_home_view_class.assert_called_once_with(mock_page)
-        mock_page.views.append.assert_called_once_with(mock_view)
+        mock_view_class.assert_called_once_with(mock_page)
+        mock_page.views.append.assert_called_once_with(mock_view_instance)
         mock_page.update.assert_called_once()
 
     def test_handle_route_change_unknown_route_error(
@@ -721,15 +752,25 @@ class TestTJDToolkitAppNavigationManagement:
         assert error.route == "/unknown-route"
         mock_page.go.assert_called_with("/")  # Redirect to home
 
-    def test_handle_route_change_view_initialization_error(
-        self, mock_page, reset_global_state, mock_view_imports
+    @pytest.mark.parametrize(
+        "route,view_class_key,view_name",
+        [
+            ("/", "HomeView", "HomeView"),
+            ("/featureeins", "FeatureEinsView", "FeatureEinsView"),
+        ],
+    )
+    def test_handle_route_change_view_initialization_error_all_routes(
+        self, route, view_class_key, view_name, mock_page, reset_global_state, mock_view_imports
     ):
-        """Test route change handling with view initialization failure.
+        """Test route change handling with view initialization failure for all routes.
 
         Validates that view initialization errors are properly handled
-        with appropriate error conversion and home redirect.
+        with appropriate error conversion and home redirect for all routes.
 
         Args:
+            route (str): Route path being tested.
+            view_class_key (str): Key for view class in mock_view_imports.
+            view_name (str): Expected view name in error.
             mock_page: Mock page fixture.
             reset_global_state: State reset fixture.
             mock_view_imports: Mocked view imports fixture.
@@ -739,12 +780,12 @@ class TestTJDToolkitAppNavigationManagement:
         """
         # Arrange
         view_init_error = RuntimeError("View initialization failed")
-        mock_home_view_class = mock_view_imports["HomeView"]
-        mock_home_view_class.side_effect = view_init_error
+        mock_view_class = mock_view_imports[view_class_key]
+        mock_view_class.side_effect = view_init_error
 
         app = TJDToolkitApp.__new__(TJDToolkitApp)
         app.page = mock_page
-        mock_page.route = "/"
+        mock_page.route = route
 
         route_event = MagicMock()
 
@@ -754,9 +795,9 @@ class TestTJDToolkitAppNavigationManagement:
 
         # Verify error details and redirect
         error = exc_info.value
-        assert "Failed to initialize view for route /" in error.message
-        assert error.route == "/"
-        assert error.view_name == "HomeView"
+        assert f"Failed to initialize view for route {route}" in error.message
+        assert error.route == route
+        assert error.view_name == view_name
         assert error.cause == view_init_error
         mock_page.go.assert_called_with("/")
 
@@ -896,33 +937,6 @@ class TestTJDToolkitAppNavigationManagement:
         error = exc_info.value
         assert "Error handling view pop" in error.message
         assert error.cause == pop_error
-
-    def test_route_mapping_with_mocked_views(
-        self, mock_page, reset_global_state, mock_view_imports
-    ):
-        """Test that route mapping works correctly with mocked views.
-
-        Validates that the application can handle route mapping
-        even when actual view classes are mocked.
-
-        Args:
-            mock_page: Mock page fixture.
-            reset_global_state: State reset fixture.
-            mock_view_imports: Mocked view imports fixture.
-        """
-        # Arrange
-        app = TJDToolkitApp.__new__(TJDToolkitApp)
-        app.page = mock_page
-        mock_page.route = "/"
-
-        # Act
-        route_event = MagicMock()
-        app._handle_route_change(route_event)
-
-        # Assert
-        assert mock_page.views.clear.called
-        assert mock_page.views.append.called
-        assert mock_page.update.called
 
     def test_navigation_error_handling_without_real_views(self, mock_page, reset_global_state):
         """Test navigation error handling when no views are available.
@@ -1278,22 +1292,39 @@ class TestIntegrationWorkflows:
     """Integration tests for complete application workflows.
 
     This class contains tests for end-to-end workflows that
-    simulate real usage scenarios with mocked view components.
+    simulate real usage scenarios with mocked view components
+    for all routes and features.
     """
 
     @patch("gui.main.FontManager")
     @patch("gui.main.config")
-    def test_complete_application_lifecycle_with_mocked_views(
-        self, mock_config, mock_font_manager_class, mock_page, reset_global_state, mock_view_imports
+    @pytest.mark.parametrize(
+        "test_route,view_key",
+        [
+            ("/", "HomeView"),
+            ("/featureeins", "FeatureEinsView"),
+        ],
+    )
+    def test_complete_application_lifecycle_all_routes(
+        self,
+        mock_config,
+        mock_font_manager_class,
+        test_route,
+        view_key,
+        mock_page,
+        reset_global_state,
+        mock_view_imports,
     ):
-        """Test complete application lifecycle with mocked views.
+        """Test complete application lifecycle with all routes and mocked views.
 
         Validates the entire application workflow from initialization
-        through navigation using mocked view components.
+        through navigation using mocked view components for all implemented routes.
 
         Args:
             mock_config: Mocked config module.
             mock_font_manager_class: Mocked FontManager class.
+            test_route (str): Route to test in the lifecycle.
+            view_key (str): Key for view class in mock_view_imports.
             mock_page: Mock page fixture.
             reset_global_state: State reset fixture.
             mock_view_imports: Mocked view imports fixture.
@@ -1306,8 +1337,8 @@ class TestIntegrationWorkflows:
         # Act - Initialize application
         app = TJDToolkitApp(mock_page)
 
-        # Simulate route change to home with mocked view
-        mock_page.route = "/"
+        # Simulate route change with mocked view
+        mock_page.route = test_route
         route_event = MagicMock()
         app._handle_route_change(route_event)
 
@@ -1315,7 +1346,7 @@ class TestIntegrationWorkflows:
         assert app.page == mock_page
         assert app.font_manager == mock_font_manager
         mock_font_manager.setup_fonts.assert_called_once()
-        mock_view_imports["HomeView"].assert_called_once_with(mock_page)
+        mock_view_imports[view_key].assert_called_once_with(mock_page)
         mock_page.views.append.assert_called_once()
 
     @patch("gui.main.FontManager")
